@@ -1,0 +1,10 @@
+log/*
+out/*
+pdf/*
+temp/*
+old_scripts/
+scripts/est_cosmics
+scripts/plotgttf1
+scripts/plotgttf2
+scripts/plotgttf3
+scripts/plotgttf4

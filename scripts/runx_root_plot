@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+
+# data files:
+WORK_DIR="$PWD/.."
+IN_DIR="${WORK_DIR}/../tripletSim/out" # output directory of GTTF output
+OUT_DIR="${WORK_DIR}/pdf" # pdf output directory 
+
+echo 'input path:'
+echo ${IN_DIR}
+
+echo 'output path:'
+echo ${OUT_DIR}
+# customize based on input file names
+#RUNS=run00001
+#RUNS=run00465plus
+RUNS=run01099
+PREFIX=gttfOut
+
+# customize to tag output file name
+#TAG=sim
+TAG=data
+
+for i in {1..4..1}
+do
+	if [[ $i == 3 ]]; then
+		g++ -o plotgttf3 root_plot_gttfx.cpp `root-config --cflags --glibs` -DTRIHITS
+	elif [[ $i == 4 ]]; then
+		g++ -o plotgttf4 root_plot_gttfx.cpp `root-config --cflags --glibs`
+	else
+		g++ -o plotgttf1 root_plot_nhit1.cpp `root-config --cflags --glibs` 
+		g++ -o plotgttf2 root_plot_nhit2.cpp `root-config --cflags --glibs`
+	fi
+
+	COMB=$(printf "%01d" $i)
+	echo "Converting and Plotting $TAB  : $COMB"
+	IN_FILE="$IN_DIR/"$PREFIX"_${RUNS}_${COMB}hits_1.root"
+	echo "Input File: $IN_FILE"
+	OUT_FILE="$OUT_DIR/gttf_${TAG}_${RUNS}_${COMB}hits_1.pdf"
+	./plotgttf${COMB} $IN_FILE $OUT_FILE
+done 
