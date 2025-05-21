@@ -37,7 +37,7 @@ std::string input_tree_name = "TrackTree";
 void WriteToPdf(TTree *trk, std::string output_file_name)
 {
   int MaxEntries = 10000;
-	MaxEntries = trk->GetEntries();
+  MaxEntries = trk->GetEntries();
   /////////////////////////////////////////////////
   // cuts for triplets
   // const double chi2cut=49;

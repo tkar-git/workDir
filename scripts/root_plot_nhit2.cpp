@@ -29,6 +29,8 @@ const int MaxEntries = 100000;
 
 void WriteToPdf(TTree *trk, std::string output_file_name)
 {
+  int MaxEntries = 10000;
+  MaxEntries = trk->GetEntries();
   /////////////////////////////////////////////////
   // cuts for triplets
   // const double chi2cut=49;

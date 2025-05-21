@@ -35,10 +35,11 @@
 
 std::string input_tree_name = "TrackTree";
 
-const int MaxEntries = 100000;
 
 void WriteToPdf(TTree *trk, std::string output_file_name)
 {
+  int MaxEntries = 10000;
+  MaxEntries = trk->GetEntries();
   /////////////////////////////////////////////////
 #ifdef TRIHITS
   // cuts for triplets (3nhit)
