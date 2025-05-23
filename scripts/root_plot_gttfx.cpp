@@ -69,6 +69,9 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   gStyle->SetPadRightMargin(0.15);
   gStyle->SetOptStat(0);
   //gStyle->SetPalette(kInvertedDarkBodyRadiator);
+  //gStyle->SetPalette(kCMYK);
+  //gStyle->SetPalette(kPastel);
+  gStyle->SetPalette(kLightTemperature);
   TColor::InvertPalette();
   Legends();
 

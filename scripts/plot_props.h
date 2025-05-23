@@ -12,8 +12,8 @@ Float_t TEXT_ALIGN = 32;
 Float_t TEXT_ALIGN_1 = 12;
 Float_t TEXT_FONT = 62;
 Float_t TEXT_SIZE = 0.03;
-Float_t Xl1 = 0.16, Yu1 = 0.87, Xl2 = 0.36, Yu2 = 0.95;
-Float_t Xr1 = 0.5, Ym1 = 0.5, Xr2 = 0.899, Ym2 = 0.8;
+Float_t Xl1 = 0.16, Yu1 = 0.89, Xl2 = 0.36, Yu2 = 0.95;
+Float_t Xr1 = 0.5, Ym1 = 0.5, Xr2 = 0.899, Ym2 = 0.85;
 Float_t LEFT_MARGIN = 0.15;
 Float_t MARKER_STYLE = 6;
 
@@ -24,7 +24,7 @@ void Legends()
 {
 leg  = new TLegend(Xl1, Ym2, Xl2, Yu1);
 leg->AddEntry((TObject*)0, "mu3e preliminary","");
-leg->AddEntry((TObject*)0, "Cosmic Minimal setup","");
+//leg->AddEntry((TObject*)0, "Cosmic Minimal setup","");
 leg->SetFillStyle(FILL_STYLE);
 leg->SetBorderSize(BORDER_SIZE);
 leg->SetTextSize(TEXT_SIZE);

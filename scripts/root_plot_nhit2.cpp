@@ -42,82 +42,128 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
 
   ////////////////////////////////////////////////
 
-  
+
   char char_cut[1023];
   char char_text[1023];
- 
+
   char out_file_open[1023];
   sprintf(out_file_open,"%s(",output_file_name.c_str());
   char out_file_[1023];
   sprintf(out_file_,"%s",output_file_name.c_str());
   char out_file_close[1023];
   sprintf(out_file_close,"%s)",output_file_name.c_str()); 
-  
+
   TCanvas *S = new TCanvas();
 
   gStyle->SetOptStat(0);
   //gROOT->ForceStyle();
 
+  //gStyle->SetPalette(kCMYK);
+  //gStyle->SetPalette(kPastel);
+  gStyle->SetPalette(kLightTemperature);
 
-  
+
   // example binning
   int nbins = 100;
   double min = -50.0;
   double max = 50.0;
-  
-  TH1F *h1 = new TH1F("h1","h1",nbins,min,max);
-  trk->Draw("hit_x>>h1");
-  h1->SetTitle("Hit X");
-  h1->GetXaxis()->SetTitle("Hit X [mm]");
-  // set log scale
-  //S->SetLogy();
-  h1->Draw();//Draw("hist");
-  S->Print(out_file_open); // pg1
-  
-  
-  trk->SetMarkerStyle(20);
-  trk->SetMarkerSize(0.5);
-  
+
+  S->Divide(3,1);
+  //TH1F *h1 = new TH1F("h1","h1",nbins,min,max);
+  S->cd(1);
+  trk->Draw("hit_x","","");
+  //h1->SetTitle("Hit X");
+  //h1->GetXaxis()->SetTitle("Hit X [mm]");
+  //h1->Draw();//Draw("hist");
+  S->cd(2);
+  trk->Draw("hit_y","","");
+  //h1->SetTitle("Hit Y");
+  //h1->GetXaxis()->SetTitle("Hit Y [mm]");
+  //h1->Draw();
+  S->cd(3);
+  trk->Draw("hit_z","","");
+  S->Print(out_file_open); // HERE OPEN
+
+
   nbins=200;
   min = -50.0;
   max = 50.0;
-  
+  S->Clear();
   TH2F *h2 = new TH2F("h2","h2",nbins,min,max,nbins,min,max);
   trk->Draw("hit_y:hit_x>>h2","","",MaxEntries);
   h2->SetTitle("Hit Y vs Hit X");
   h2->GetXaxis()->SetTitle("Hit X [mm]");
   h2->GetYaxis()->SetTitle("Hit Y [mm]");
   h2->SetMarkerStyle(20);
-  h2->SetMarkerSize(0.5);
+  //h2->SetMarkerSize(0.5);
   h2->SetMarkerColor(kRed);
-  h2->Draw("SCAT");
-  //h2->Draw("colz");
+  h2->Draw("colz");
   S->Print(out_file_);// pg2
-  
-  trk->SetMarkerStyle(20);
-  trk->SetMarkerSize(0.3);
-  
+
   nbins=100;
   min = -50.0;
   max = 50.0;
   // plot default without custom binning
   S->Clear();
-  trk->Draw("hit_x:hit_z","","",MaxEntries);
+  trk->Draw("hit_x:hit_z>>(200,-65,65,100,-50,50)","","colz",MaxEntries);
   S->Print(out_file_);//pg3
 
   S->Clear();
-  trk->Draw("hit_y:hit_z","","",MaxEntries);
+  trk->Draw("hit_y:hit_z>>(200,-65,65,100,-50,50)","","colz",MaxEntries);
   S->Print(out_file_);//pg3
-  
+  // --------------- colz hit maps for two layers ----------------------//
+
+  constexpr int nLayers = 2;
+  int nLadders = 8;// change in loop to 10 if layer_id == 1
+  constexpr int nChips = 3; // this is for half ladders and upstream.
+
+  char hist_name[256];
+  char hist_title[1023];
+
+  for(int i = 0; i < nLayers; ++i)
+  {
+    if(i == 1) nLadders = 10;
+    for(int j = 0; j < nLadders; ++j)
+    {
+      S->Clear();
+      S->Divide(3,1);
+      TH2F* hists[nChips];
+      for(int k = 0; k < nChips; ++k)
+      {
+        sprintf(hist_name, "hChip%d", k+1);
+        sprintf(hist_title, "Chip %d, Ladder %d, Layer %d; col; row", k+1, j+1, i+1);
+        hists[k] = new TH2F(hist_name, hist_title, 256, -0.5, 255.5, 250, -0.5, 249.5);	
+        gDirectory->Add(hists[k]);
+
+        sprintf(char_cut,"hit_layer_id==%d && hit_ladder_id==%d && hit_chip_id==%d", i, j, k+1);
+
+        trk->Draw(Form("hit_row:hit_col>>%s",hist_name),char_cut,"goff");
+
+        S->cd(k+1);
+        hists[k]->GetYaxis()->SetTitleOffset(1.0);
+        hists[k]->GetXaxis()->CenterTitle();
+        hists[k]->GetYaxis()->CenterTitle();
+        hists[k]->Draw("colz");
+        gPad->Modified();
+        gPad->Update();
+      }//nChip
+      S->Update();
+      S->Print(out_file_);
+      for(int k = 0; k < nChips; ++k) delete hists[k];
+    }//nLadder    
+  }//nLayers
+
+
+
   S->Clear();
   trk->Draw("hit_layer_id");
   S->Print(out_file_);
-  
+
   S->Clear();
   trk->Draw("hit_layer_id:hit_ladder_id","","BOX");
   S->Print(out_file_);
-  
-  
+
+
   // ladders outer and inner layers
   S->Clear();
   S->Divide(2,1);
@@ -127,7 +173,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   S->cd(2);
   trk->Draw("hit_ladder_id","hit_layer_id==0");
   S->Print(out_file_);
-  
+
 
   //
   S->Clear();
@@ -144,12 +190,12 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   S->cd(5);
   trk->Draw("hit_x:hit_z","hit_ladder_id==7&&hit_layer_id==1","",MaxEntries);
   S->Print(out_file_);
-  
-  
+
+
   ///////////////////////////////////
-  
+
   S->Clear();
-  
+
   min = 0.0;
   max = 1e6;
   nbins = 1000;
@@ -161,7 +207,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   //S->SetLogy();
   h4->Draw();//Draw("hist");
   S->Print(out_file_); // pg1
-  
+
   S->Clear();
   min = 0.0;
   max = 100;
@@ -174,12 +220,12 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   //S->SetLogy();
   h5->Draw();//Draw("hist");
   S->Print(out_file_); 
-  
-  
+
+
   S->Clear();
   trk->Draw("event:run_id");
   S->Print(out_file_);
-  
+
   min = 0.0;
   max = 1.5e8;
   nbins = 1000;
@@ -191,7 +237,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   //S->SetLogy();
   h14->Draw();//Draw("hist");
   S->Print(out_file_); // pg1
-  
+
   min = 0.0;
   max = 100;
   nbins = 100;
@@ -203,14 +249,14 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   //S->SetLogy();
   h15->Draw();//Draw("hist");
   S->Print(out_file_); 
-  
+
 
   trk->Draw("run_id:hit_timeFPGA[0] >> h24_1","","BOX");
   TH1F *h24_1 = (TH1F *)gPad->GetPrimitive("h24_1");
   h24_1->SetTitle("hit time (FPGA)");
   h24_1->GetXaxis()->SetTitle("Hit(1) Time FPGA (in 16us)");
   h24_1->GetYaxis()->SetTitle("Run number");
-  
+
   trk->Draw("run_id:hit_timeFPGA[1] >> h24_2","","BOX");
   TH1F *h24_2 = (TH1F *)gPad->GetPrimitive("h24_2");
   h24_2->SetTitle("hit time (FPGA)");
@@ -220,13 +266,13 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   S->Clear();
   S->Divide(2,1);
   S->cd(1);
-  h24_1->Draw();
+  h24_1->Draw("BOX");
   S->cd(2);
-  h24_2->Draw();
+  h24_2->Draw("BOX");
 
   S->Print(out_file_);
-  
-  
+
+
   S->Clear();
   min = 0.0;
   max = 100;
@@ -239,38 +285,38 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   //S->SetLogy();
   h25->Draw();//Draw("hist");
   S->Print(out_file_); 
-  
-  
+
+
   S->Clear();
   //TH2F *h3 = new TH2F("h3","h3",nbins,-max,-min,nbins,min,max);
   trk->Draw("event:hit_timestamp","event<100000","BOX");
   S->Print(out_file_);
-  
+
   S->Clear();
   //TH2F *h3 = new TH2F("h3","h3",nbins,-max,-min,nbins,min,max);
   trk->Draw("event:hit_timeFPGA","event<100000","BOX");
   S->Print(out_file_);
-  
+
   /**************************************/
-  
+
   S->Clear();
   trk->Draw("frame_id");
   S->Print(out_file_);
-  
+
   S->Clear();
   trk->Draw("event:frame_id");
   S->Print(out_file_);
-  
-  
-  
+
+
+
   // h3->SetTitle("Hit Y vs Hit X");
   // h3->GetXaxis()->SetTitle("Hit X [mm]");
   // h3->GetYaxis()->SetTitle("Hit Y [mm]");
   // h3->SetMarkerStyle(20);
   // h3->SetMarkerSize(1.5);
   // h3->Draw("SCAT");
-  
-  
+
+
   /**************************************/
   S->Clear();
   min = 0.0;
@@ -282,9 +328,9 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   h9100->GetXaxis()->SetTitle("Hit Combination Type");
   h9100->Draw();
   S->Print(out_file_);
-  
+
   // Combinatorics
-  
+
   S->Clear();
   S->Divide(2,2);
 
@@ -307,7 +353,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   h9102->SetTitle("Number of 3-hit combinations");
   h9102->GetXaxis()->SetTitle("3-hit combinations");
   h9102->Draw();
-  
+
   S->cd(3);
   min = 0.0;
   max = 300;
@@ -337,7 +383,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   S->cd(3);
   gPad->SetLogy();
   h9103->Draw();
-  
+
   S->Print(out_file_);
 
   ///////////////////////////////////////////////////////
@@ -375,11 +421,11 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   S->cd(1);
 
   S->Print(out_file_);
-  
+
   ///////////////////////////////////////////////////////
-  
+
   S->Clear();
-  
+
   min = 0.0;
   max = 35;
   nbins = 35;
@@ -391,7 +437,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   //S->SetLogy();
   h9104->Draw();//Draw("hist");
   S->Print(out_file_);
-  
+
   nbins = 100;
   ///////////////////////////////////////////////////////
   // nommber combinations vs track quality  
@@ -406,7 +452,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("ncomb4:qual_track","","BOX");
 
   S->Print(out_file_);
-  
+
   ///////////////////////////////////////////////////////
   // Hit Multiplicity vs Timestamp  
   S->Clear();
@@ -422,7 +468,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("nhitCL3:frame_id","","BOX");
 
   S->Print(out_file_);
-  
+
 
   ///////////////////////////////////////////////////////
   // number combinations vs Timestamp  
@@ -437,13 +483,13 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("ncomb4:frame_id","","BOX");
 
   S->Print(out_file_);
-  
-  
+
+
   ///////////////////////////////////////////////////////
-  
+
   S->Clear();
   S->Divide(2,2);
-  
+
   S->cd(1);
   trk->Draw("t_10");
   S->cd(2);
@@ -452,15 +498,15 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("t_10","abs(t_10)<1e5");
   S->cd(4);
   trk->Draw("t_10","abs(t_10)<1e3");
-  
+
   S->Print(out_file_);
-  
-  
+
+
   /////////////////////////////////////
   //
   S->Clear();
   S->Divide(2,2);
-  
+
   S->cd(1);
   trk->Draw("t_32");
   S->cd(2);
@@ -469,26 +515,26 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("t_32","abs(t_32)<1e5");
   S->cd(4);
   trk->Draw("t_32","abs(t_32)<1e3");
-  
+
   S->Print(out_file_);
-  
+
   //
-  
+
   ///////////////////////////////////////////////////////
-    
+
   //     Time difference cosmic layers 1 - 0
   S->Clear();
   nbins = 100;
   min = -400;
   max = 400;
-  
+
   TH1F *h101 = new TH1F("h101","h101",nbins,min,max);
   trk->Draw("t_10 >> h101");
   h101->SetTitle("Time difference cosmic layers 1 - 0");
   h101->GetXaxis()->SetTitle("t_hit_1 - t_hit_0 in timestamps (8ns)");
   h101->Draw();//Draw("hist");
   S->Print(out_file_);
-  
+
   sprintf(char_cut,"qual_track<%f",qualcut);
   sprintf(char_text,"Time difference in cosmic layers 1 - 0 (qual_track<%.0f)",qualcut);  
   TH1F *h1101 = new TH1F("h1101","h1101",nbins,min,max);
@@ -498,15 +544,15 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   h1101->Draw();//Draw("hist");
   S->Print(out_file_);
 
-  
+
   // overlay with ALL
   h101->SetLineColor(kBlack);
   h101->SetLineWidth(1);
   h101->Draw();
-  
+
   h1101->SetLineColor(kBlue);
   h1101->Draw("same");
-  
+
   TLegend *leg101 =  new TLegend(0.11,0.6,0.42,0.96);
   leg101->SetFillStyle(0);
   leg101->SetBorderSize(0);
@@ -514,13 +560,13 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   leg101->AddEntry(h101,"All","l");
   sprintf(char_text,"qual_track<%.0f",qualcut);
   leg101->AddEntry(h1101,char_text,"l");
-  
+
   S->Print(out_file_);
 
   // overlay without ALL
   h1101->SetLineColor(kBlue);
   h1101->Draw();
-  
+
   leg101->Draw();
   S->Print(out_file_);
 
@@ -535,7 +581,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("t_10","(abs(t_10)<10000)/(nhitCL0*nhitCL1)","HIST");
   S->Print(out_file_);
 
-  
+
   ////////////
   //     Time difference cosmic layers 3 - 2  (variable cuts)
   S->Clear();
@@ -546,7 +592,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   h321->GetXaxis()->SetTitle("t_hit_3 - t_hit_2 in timestamps (8ns)");
   h321->Draw();//Draw("hist");
   S->Print(out_file_);
-  
+
   sprintf(char_cut,"qual_track<%f",qualcut);
   sprintf(char_text,"Time difference in cosmic layers 3 - 2 (qual_track<%.0f)",qualcut);  
   TH1F *h1321 = new TH1F("h1321","h1321",nbins,min,max);
@@ -556,16 +602,16 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   h1321->Draw();//Draw("hist");
   S->Print(out_file_);
 
-  
-  
+
+
   // overlay with ALL
   h321->SetLineColor(kBlack);
   h321->SetLineWidth(1);
   h321->Draw();
-  
+
   h1321->SetLineColor(kBlue);
   h1321->Draw("same");
-  
+
   TLegend *leg321 =  new TLegend(0.11,0.6,0.42,0.96);
   leg321->SetFillStyle(0);
   leg321->SetBorderSize(0);
@@ -573,16 +619,16 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   leg321->AddEntry(h321,"All","l");
   sprintf(char_text,"qual_track<%.0f",qualcut);
   leg321->AddEntry(h1321,char_text,"l");
-  
+
   S->Print(out_file_);
-  
+
   // overlay without ALL
   h1321->SetLineColor(kBlue);
   h1321->Draw();
-  
+
   leg321->Draw();
   S->Print(out_file_);
-  
+
 
   ///////////////////////////////////////////////////////
   // Run Dependence
@@ -596,7 +642,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("run_id:t_32",char_cut,"BOX");
 
   S->Print(out_file_);
-  
+
 
   ///////////////////////////////////////////////////////
   // Sensor Dependence
@@ -610,7 +656,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("hit_ladder_id[0]:t_32",char_cut,"BOX");
 
   S->Print(out_file_);
-  
+
   ///////////////////////////////////////////////////////
   // Frame Dependence
   S->Clear();
@@ -624,7 +670,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("frame_id:t_32",char_cut,"BOX");
 
   S->Print(out_file_);
-  
+
   ///////////////////////////////////////////////////////
   // z-position Dependence
   S->Clear();
@@ -644,7 +690,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("hit_z[1]:t_32",char_cut,"BOX");
 
   S->Print(out_file_);
-  
+
 
   ///////////////////////////////////////////////////////
   // trk_theta Dependence
@@ -665,7 +711,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("trk_theta:t_32",char_cut,"BOX");
 
   S->Print(out_file_);
-  
+
 
   ///////////////////////////////////////////////////////
   // trk_phi Dependence
@@ -686,7 +732,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("trk_phi:t_32",char_cut,"BOX");
 
   S->Print(out_file_);
-  
+
 
   ///////////////////////////////////////////////////////
   // phi_incline Dependence
@@ -707,7 +753,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("hit_phi_incline:t_32",char_cut,"BOX");
 
   S->Print(out_file_);
-  
+
   ///////////////////////////////////////////////////////
   // hit multiplcitiy Dependence
   S->Clear();
@@ -727,7 +773,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("nhitCL3:t_32",char_cut,"BOX");
 
   S->Print(out_file_);
-  
+
 
   ///////////////////////////////////////////////////////
   // hit multiplcitiy Dependence
@@ -752,9 +798,9 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("nhitCL3:t_32",char_cut,"BOX");
 
   S->Print(out_file_);
-  
 
-  
+
+
   ///////////////////////////////////////////////////////
   // ncomb2 Dependence
   S->Clear();
@@ -767,7 +813,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("ncomb2:t_32",char_cut,"BOX");
 
   S->Print(out_file_);
-  
+
 
   ///////////////////////////////////////////////////////
   // ncomb3 Dependence
@@ -781,11 +827,11 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("ncomb3:t_32",char_cut,"BOX");
 
   S->Print(out_file_);
-  
+
 
 
   ///////////////////////////////////////////////////////
-  
+
   gStyle->SetOptStat(0);
 
   S->Clear();
@@ -799,7 +845,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   h106->SetTitle("Time difference in cosmic layers 1-0 (ladder 2-2)");
   h106->GetXaxis()->SetTitle("t_hit_1 - t_hit_0 in timestamps (8ns)");
   h106->Draw();//Draw("hist");
-  
+
   S->cd(2);
   nbins = 200;
   TH1F *h107 = new TH1F("h107","h107",nbins,min,max);
@@ -809,9 +855,9 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   h107->Draw();//Draw("hist");
 
   S->Print(out_file_);
-  
-  
-  
+
+
+
   /////////////////////////////
   // tot
 
@@ -834,7 +880,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   sprintf(char_cut,"comb_type==34",qualcut);  
   trk->Draw("hit_tot[0]>>htot2all",char_cut);
   TH1F *htot2all = (TH1F *)gPad->GetPrimitive("htot2all");
-  
+
   sprintf(char_cut,"comb_type==34 && qual_track<%.0f",qualcut);  
   trk->Draw("hit_tot[0]>>htot2core",char_cut);
   TH1F *htot2core = (TH1F *)gPad->GetPrimitive("htot2core");
@@ -842,7 +888,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   sprintf(char_cut,"comb_type==34",qualcut);  
   trk->Draw("hit_tot[1]>>htot3all",char_cut);
   TH1F *htot3all = (TH1F *)gPad->GetPrimitive("htot3all");
-  
+
   sprintf(char_cut,"comb_type==34 && qual_track<%.0f",qualcut);  
   trk->Draw("hit_tot[1]>>htot3core",char_cut);
   TH1F *htot3core = (TH1F *)gPad->GetPrimitive("htot3core");
@@ -870,15 +916,50 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   htot3all->Draw();
   htot3core->SetLineColor(kBlue);
   htot3core->Draw("same");
-  
+
   S->Print(out_file_);
-  
+
+  //////////////////////////////////////    
+  // tot vs ladder
+  S->Clear();
+  gPad->SetLogy(0);
+  S->Divide(2,2);
+  S->cd(1);
+  trk->Draw("hit_ladder_id + 1:hit_tot","comb_type==-1","colz",MaxEntries);
+  S->cd(2);
+  trk->Draw("hit_ladder_id + 1:hit_tot","comb_type==-2","colz",MaxEntries);
+  S->cd(3);
+  trk->Draw("hit_ladder_id + 1:hit_tot","comb_type==-3","colz",MaxEntries);
+  S->cd(4);
+  trk->Draw("hit_ladder_id + 1:hit_tot","comb_type==-4","colz",MaxEntries);
+  S->Print(out_file_); 
+
+  gDirectory->Delete("htemp;*");
+  gDirectory->Delete("Graph;*"); 
+  S->Clear();
+  S->Divide(2,2);
+  S->cd(1);
+  sprintf(char_cut,"comb_type==-1 && qual_track<%.0f",qualcut);
+  trk->Draw("hit_ladder_id + 1:hit_tot", char_cut ,"colz",MaxEntries);
+  S->cd(2);
+  sprintf(char_cut,"comb_type==-2 && qual_track<%.0f",qualcut);
+  trk->Draw("hit_ladder_id + 1:hit_tot", char_cut ,"colz",MaxEntries);
+  S->cd(3);
+  sprintf(char_cut,"comb_type==-3 && qual_track<%.0f",qualcut);
+  trk->Draw("hit_ladder_id + 1:hit_tot", char_cut ,"colz",MaxEntries);
+  S->cd(4);
+  sprintf(char_cut,"comb_type==-4 && qual_track<%.0f",qualcut);
+  trk->Draw("hit_ladder_id + 1:hit_tot", char_cut ,"colz",MaxEntries);
+  S->Print(out_file_); 
+  gDirectory->Delete("htemp;*");
+  gDirectory->Delete("Graph;*"); 
+
   //////////////////////////////////////    
   // t_rms
-  
+
   S->Clear();    
   S->Divide(2,2);
-  
+
   S->cd(1);
   sprintf(char_cut,"qual_track<%.0f",qualcut);  
   trk->Draw("t_rms",char_cut);
@@ -891,13 +972,13 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   S->cd(4);
   sprintf(char_cut,"abs(t_rms)<1e2  && qual_track<%.0f",qualcut);  
   trk->Draw("t_rms",char_cut);
-  
+
   S->Print(out_file_);
-  
-  
+
+
   /////////////////////////////////////////////////
   // time differences for specific half-ladders
-  
+
   S->Clear();
   S->Divide(1,2);
   S->cd(1);
@@ -907,7 +988,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   sprintf(char_cut,"qual_track<%.0f && abs(t_32)<200 && hit_layer_id[0]==1 && hit_ladder_id[0]==1",qualcut);  
   trk->Draw("t_32",char_cut);
   S->Print(out_file_);
-  
+
   S->Clear();
   S->Divide(1,2);
   S->cd(1);
@@ -917,7 +998,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   sprintf(char_cut,"qual_track<%.0f && abs(t_32)<200 && hit_layer_id[0]==1 && hit_ladder_id[0]==2 ",qualcut);  
   trk->Draw("t_32",char_cut);
   S->Print(out_file_);
-  
+
   /////////////////////////////////////////////////////////////////////  
 
   S->Clear();
@@ -938,7 +1019,7 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("trk_theta","","BOX");
 
   S->Print(out_file_);
-  
+
   //
   S->Clear();
   S->Divide(2,1);
@@ -948,14 +1029,14 @@ void WriteToPdf(TTree *trk, std::string output_file_name)
   trk->Draw("ncomb2:hit_phi_incline","","BOX");
 
   S->Print(out_file_);
-  
 
-  
-  
+
+
+
   // Empty page fpor convinience
-  
+
   S->Print(out_file_close); 
-  
+
 }
 
 int main(int argc, char *argv[])
@@ -965,37 +1046,37 @@ int main(int argc, char *argv[])
   std::string input_file;
   std::string output_file;
   if(argc == 3)
-    {
-      input_file = argv[1];
-      output_file = argv[2];
-    } 
+  {
+    input_file = argv[1];
+    output_file = argv[2];
+  } 
   else
-    {      
-      std::cout << "Usage: ./plotroot  <input_file.root> <output_file.pdf> " << std::endl;
-      return 1;
-    }
-  
-  
-  
+{      
+    std::cout << "Usage: ./plotroot  <input_file.root> <output_file.pdf> " << std::endl;
+    return 1;
+  }
+
+
+
   // READ ROOT FILE
   TFile *f = new TFile(input_file.c_str(), "READ");
   if(f->IsZombie())
-    {
-      std::cout << "Error: File " << input_file << " not found." << std::endl;
-      return 1;
-    }
+  {
+    std::cout << "Error: File " << input_file << " not found." << std::endl;
+    return 1;
+  }
   TTree *trk = (TTree*)f->Get(input_tree_name.c_str());
   if(trk == nullptr)
-    {
-      std::cout << "Error: Tree " << input_tree_name << " not found in file " << input_file << "." << std::endl;
-      return 1;
-    }
+  {
+    std::cout << "Error: Tree " << input_tree_name << " not found in file " << input_file << "." << std::endl;
+    return 1;
+  }
   std::cout<<"Input Tree has: " << trk->GetEntries() << " entries." << std::endl;
-  
+
   std::cout<<"Writing to pdf ....... \n";
   WriteToPdf(trk, output_file);
-  
-  
+
+
   std::cout<<"Done writing to pdf ....... \n";
   return 0;
 }
