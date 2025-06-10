@@ -16,7 +16,7 @@
 # -- run mu3eSort anaComba run_fit_noB --range 551 553
 #
 # date: 29.04.2025
-# last modified: 02.05.2025
+# last modified: 10.06.2025
 # author: Tamasi Kar
 # email: kar@physi.uni-heidelberg.de
 # ------------------------------------------------------------------------- #
@@ -165,14 +165,14 @@ execute_project() {
             for j in $(seq ${NComb[0]} ${NComb[1]})
             do
                 echo "Running ${exe} for RUN: ${run} with ${j} hits"
-                $exe $OutDir/run${run}.root $OutDir/gttfInp_run${run}_${j}hits_1.root $j
+                $exe $OutDir/run${run}.root $OutDir/gttfInp_run${run}_${j}hits.root $j
             done
             ;;
         "${Executables[2]}")
             for j in $(seq ${NComb[0]} ${NComb[1]})
             do
                 echo "Running ${exe} for RUN: ${run} with ${j} hits"
-                ${WorkDir}/../"${Projects[2]}"/$exe $OutDir/gttfInp_run${run}_${j}hits_1.root gttfOut_run${run}_${j}hits_1.root $j
+                ${WorkDir}/../"${Projects[2]}"/$exe $OutDir/gttfInp_run${run}_${j}hits.root gttfOut_run${run}_${j}hits.root $j
             done
             ;;
     esac
